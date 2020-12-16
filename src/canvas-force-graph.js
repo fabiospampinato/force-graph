@@ -123,9 +123,10 @@ export default Kapsule({
       }
 
       function paintNodes() {
-        const getVisibility = accessorFn(state.nodeVisibility);
-        const ctx = state.ctx;
-        const visibleNodes = state.graphData.nodes.filter(getVisibility);
+        if ( !state.nodeCanvasObject ) return;
+        var getVisibility = accessorFn(state.nodeVisibility);
+        var ctx = state.ctx;
+        var visibleNodes = state.graphData.nodes.filter(getVisibility);
         ctx.save();
         visibleNodes.forEach(node => {
           state.nodeCanvasObject(node, ctx, state.globalScale, state.isShadow);
