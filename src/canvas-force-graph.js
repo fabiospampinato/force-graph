@@ -148,7 +148,6 @@ export default Kapsule({
         const padAmount = state.isShadow * 2;
 
         const visibleLinks = state.graphData.links.filter(getVisibility);
-
         visibleLinks.forEach(calcLinkControlPoints); // calculate curvature control points for all visible links
 
         let beforeCustomLinks = [], afterCustomLinks = [], defaultPaintLinks = visibleLinks;
@@ -165,11 +164,6 @@ export default Kapsule({
           defaultPaintLinks = [...beforeCustomLinks, ...afterCustomLinks, ...otherCustomLinks];
           beforeCustomLinks = beforeCustomLinks.concat(replaceCustomLinks);
         }
-
-        // Custom link before paints
-        ctx.save();
-        beforeCustomLinks.forEach(link => state.linkCanvasObject(link, ctx, state.globalScale));
-        ctx.restore();
 
         // Bundle strokes per unique color/width/dash for performance optimization
         const linksPerColor = indexBy(defaultPaintLinks, [getColor, getWidth, getLineDash]);
@@ -205,11 +199,6 @@ export default Kapsule({
             });
           });
         });
-        ctx.restore();
-
-        // Custom link after paints
-        ctx.save();
-        afterCustomLinks.forEach(link => state.linkCanvasObject(link, ctx, state.globalScale));
         ctx.restore();
 
         //
