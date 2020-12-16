@@ -12,7 +12,6 @@ import Kapsule from 'kapsule';
 import accessorFn from 'accessor-fn';
 import indexBy from 'index-array-by';
 
-import { autoColorObjects } from './color-utils';
 import getDagDepths from './dagDepths';
 
 //
@@ -220,11 +219,11 @@ export default Kapsule({
                 const start = link.source;
                 const end = link.target;
                 if (!start || !end || !start.hasOwnProperty('x') || !end.hasOwnProperty('x')) return; // skip invalid link
-  
+
                 ctx.moveTo(start.x, start.y);
-  
+
                 const controlPoints = link.__controlPoints;
-  
+
                 if (!controlPoints) { // Straight line
                   ctx.lineTo(end.x, end.y);
                 } else {
@@ -445,15 +444,6 @@ export default Kapsule({
   update(state) {
     state.engineRunning = false; // Pause simulation
     state.onUpdate();
-
-    if (state.nodeAutoColorBy !== null) {
-      // Auto add color to uncolored nodes
-      autoColorObjects(state.graphData.nodes, accessorFn(state.nodeAutoColorBy), state.nodeColor);
-    }
-    if (state.linkAutoColorBy !== null) {
-      // Auto add color to uncolored links
-      autoColorObjects(state.graphData.links, accessorFn(state.linkAutoColorBy), state.linkColor);
-    }
 
     // parse links
     state.graphData.links.forEach(link => {
