@@ -124,43 +124,12 @@ export default Kapsule({
 
       function paintNodes() {
         const getVisibility = accessorFn(state.nodeVisibility);
-        const getVal = accessorFn(state.nodeVal);
-        const getColor = accessorFn(state.nodeColor);
-        const getNodeCanvasObjectMode = accessorFn(state.nodeCanvasObjectMode);
-
         const ctx = state.ctx;
-
-        // Draw wider nodes by 1px on shadow canvas for more precise hovering (due to boundary anti-aliasing)
-        const padAmount = state.isShadow / state.globalScale;
-
         const visibleNodes = state.graphData.nodes.filter(getVisibility);
-
         ctx.save();
         visibleNodes.forEach(node => {
-          const nodeCanvasObjectMode = getNodeCanvasObjectMode(node);
-
-          if (state.nodeCanvasObject && (nodeCanvasObjectMode === 'before' || nodeCanvasObjectMode === 'replace')) {
-            // Custom node before/replace paint
-            state.nodeCanvasObject(node, ctx, state.globalScale, state.isShadow);
-
-            if (nodeCanvasObjectMode === 'replace') {
-              ctx.restore();
-              return;
-            }
-          }
-
-          // Draw wider nodes by 1px on shadow canvas for more precise hovering (due to boundary anti-aliasing)
-          const r = Math.sqrt(Math.max(0, getVal(node) || 1)) * state.nodeRelSize + padAmount;
-
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-          ctx.fillStyle = getColor(node) || 'rgba(31, 120, 180, 0.92)';
-          ctx.fill();
-
-          if (state.nodeCanvasObject && nodeCanvasObjectMode === 'after') {
-            // Custom node after paint
-            state.nodeCanvasObject(node, state.ctx, state.globalScale);
-          }
+          state.nodeCanvasObject(node, ctx, state.globalScale, state.isShadow);
+          ctx.restore();
         });
         ctx.restore();
       }
