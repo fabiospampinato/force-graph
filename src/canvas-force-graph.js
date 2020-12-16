@@ -99,8 +99,8 @@ export default Kapsule({
     },
     tickFrame: function(state) {
       layoutTick();
-      paintLinks();
       paintNodes();
+      paintLinks();
 
       return this;
 
