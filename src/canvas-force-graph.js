@@ -98,10 +98,8 @@ export default Kapsule({
       return this;
     },
     tickFrame: function(state) {
-      !state.isShadow && layoutTick();
+      layoutTick();
       paintLinks();
-      !state.isShadow && paintArrows();
-      !state.isShadow && paintPhotons();
       paintNodes();
 
       return this;
@@ -278,143 +276,6 @@ export default Kapsule({
         }
       }
 
-      function paintArrows() {
-        const ARROW_WH_RATIO = 1.6;
-        const ARROW_VLEN_RATIO = 0.2;
-
-        const getLength = accessorFn(state.linkDirectionalArrowLength);
-        const getRelPos = accessorFn(state.linkDirectionalArrowRelPos);
-        const getVisibility = accessorFn(state.linkVisibility);
-        const getColor = accessorFn(state.linkDirectionalArrowColor || state.linkColor);
-        const getNodeVal = accessorFn(state.nodeVal);
-        const ctx = state.ctx;
-
-        ctx.save();
-        state.graphData.links.filter(getVisibility).forEach(link => {
-          const arrowLength = getLength(link);
-          if (!arrowLength || arrowLength < 0) return;
-
-          const start = link.source;
-          const end = link.target;
-
-          if (!start || !end || !start.hasOwnProperty('x') || !end.hasOwnProperty('x')) return; // skip invalid link
-
-          const startR = Math.sqrt(Math.max(0, getNodeVal(start) || 1)) * state.nodeRelSize;
-          const endR = Math.sqrt(Math.max(0, getNodeVal(end) || 1)) * state.nodeRelSize;
-
-          const arrowRelPos = Math.min(1, Math.max(0, getRelPos(link)));
-          const arrowColor = getColor(link) || 'rgba(0,0,0,0.28)';
-          const arrowHalfWidth = arrowLength / ARROW_WH_RATIO / 2;
-
-          // Construct bezier for curved lines
-          const bzLine = link.__controlPoints && new Bezier(start.x, start.y, ...link.__controlPoints, end.x, end.y);
-
-          const getCoordsAlongLine = bzLine
-              ? t => bzLine.get(t) // get position along bezier line
-              : t => ({            // straight line: interpolate linearly
-                x: start.x + (end.x - start.x) * t || 0,
-                y: start.y + (end.y - start.y) * t || 0
-              });
-
-          const lineLen = bzLine
-            ? bzLine.length()
-            : Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
-
-          const posAlongLine = startR + arrowLength + (lineLen - startR - endR - arrowLength) * arrowRelPos;
-
-          const arrowHead = getCoordsAlongLine(posAlongLine / lineLen);
-          const arrowTail = getCoordsAlongLine((posAlongLine - arrowLength) / lineLen);
-          const arrowTailVertex = getCoordsAlongLine((posAlongLine - arrowLength * (1 - ARROW_VLEN_RATIO)) / lineLen);
-
-          const arrowTailAngle = Math.atan2(arrowHead.y - arrowTail.y, arrowHead.x - arrowTail.x) - Math.PI / 2;
-
-          ctx.beginPath();
-
-          ctx.moveTo(arrowHead.x, arrowHead.y);
-          ctx.lineTo(arrowTail.x + arrowHalfWidth * Math.cos(arrowTailAngle), arrowTail.y + arrowHalfWidth * Math.sin(arrowTailAngle));
-          ctx.lineTo(arrowTailVertex.x, arrowTailVertex.y);
-          ctx.lineTo(arrowTail.x - arrowHalfWidth * Math.cos(arrowTailAngle), arrowTail.y - arrowHalfWidth * Math.sin(arrowTailAngle));
-
-          ctx.fillStyle = arrowColor;
-          ctx.fill();
-        });
-        ctx.restore();
-      }
-
-      function paintPhotons() {
-        const getNumPhotons = accessorFn(state.linkDirectionalParticles);
-        const getSpeed = accessorFn(state.linkDirectionalParticleSpeed);
-        const getDiameter = accessorFn(state.linkDirectionalParticleWidth);
-        const getVisibility = accessorFn(state.linkVisibility);
-        const getColor = accessorFn(state.linkDirectionalParticleColor || state.linkColor);
-        const ctx = state.ctx;
-
-        ctx.save();
-        state.graphData.links.filter(getVisibility).forEach(link => {
-          const numCyclePhotons = getNumPhotons(link);
-
-          if (!link.hasOwnProperty('__photons') || !link.__photons.length) return;
-
-          const start = link.source;
-          const end = link.target;
-
-          if (!start || !end || !start.hasOwnProperty('x') || !end.hasOwnProperty('x')) return; // skip invalid link
-
-          const particleSpeed = getSpeed(link);
-          const photons = link.__photons || [];
-          const photonR = Math.max(0, getDiameter(link) / 2) / Math.sqrt(state.globalScale);
-          const photonColor = getColor(link) || 'rgba(0,0,0,0.28)';
-
-          ctx.fillStyle = photonColor;
-
-          // Construct bezier for curved lines
-          const bzLine = link.__controlPoints
-            ? new Bezier(start.x, start.y, ...link.__controlPoints, end.x, end.y)
-            : null;
-
-          let cyclePhotonIdx = 0;
-          let needsCleanup = false; // whether some photons need to be removed from list
-          photons.forEach(photon => {
-            const singleHop = !!photon.__singleHop;
-
-            if (!photon.hasOwnProperty('__progressRatio')) {
-              photon.__progressRatio = singleHop ? 0 : cyclePhotonIdx / numCyclePhotons;
-            }
-
-            !singleHop && cyclePhotonIdx++; // increase regular photon index
-
-            photon.__progressRatio += particleSpeed;
-
-            if (photon.__progressRatio >=1) {
-              if (!singleHop) {
-                photon.__progressRatio = photon.__progressRatio % 1;
-              } else {
-                needsCleanup = true;
-                return;
-              }
-            }
-
-            const photonPosRatio = photon.__progressRatio;
-
-            const coords = bzLine
-              ? bzLine.get(photonPosRatio)  // get position along bezier line
-              : { // straight line: interpolate linearly
-                x: start.x + (end.x - start.x) * photonPosRatio || 0,
-                y: start.y + (end.y - start.y) * photonPosRatio || 0
-              };
-
-            ctx.beginPath();
-            ctx.arc(coords.x, coords.y, photonR, 0, 2 * Math.PI, false);
-            ctx.fill();
-          });
-
-          if (needsCleanup) {
-            // remove expired single hop photons
-            link.__photons = link.__photons.filter(photon => !photon.__singleHop || photon.__progressRatio <= 1);
-          }
-        });
-        ctx.restore();
-      }
     },
     emitParticle: function(state, link) {
       if (link) {
