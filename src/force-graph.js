@@ -255,7 +255,7 @@ export default Kapsule({
     },
     zoomToFit: function(state, transitionDuration = 0, padding = 10, ...bboxArgs) {
       const bbox = this.getGraphBbox(...bboxArgs);
-      
+
       if (bbox) {
         const center = {
           x: (bbox.x[0] + bbox.x[1]) / 2,
@@ -449,11 +449,6 @@ export default Kapsule({
       }
     });
 
-    // Setup tooltip
-    const toolTipElem = document.createElement('div');
-    toolTipElem.classList.add('graph-tooltip');
-    container.appendChild(toolTipElem);
-
     // Capture pointer coords on move or touchstart
     const pointerPos = { x: -1e12, y: -1e12 };
     ['pointermove', 'pointerdown'].forEach(evType =>
@@ -467,10 +462,6 @@ export default Kapsule({
         const offset = getOffset(container);
         pointerPos.x = ev.pageX - offset.left;
         pointerPos.y = ev.pageY - offset.top;
-
-        // Move tooltip
-        toolTipElem.style.top = `${pointerPos.y}px`;
-        toolTipElem.style.left = `${pointerPos.x}px`;
 
         //
 
@@ -561,10 +552,6 @@ export default Kapsule({
             // Hover in
             state[`on${objType}Hover`](obj.d, prevObjType === objType ? prevObj.d : null);
           }
-
-          const tooltipContent = obj ? accessorFn(state[`${obj.type.toLowerCase()}Label`])(obj.d) || '' : '';
-          toolTipElem.style.visibility = tooltipContent ? 'visible' : 'hidden';
-          toolTipElem.innerHTML = tooltipContent;
 
           state.hoverObj = obj;
         }
