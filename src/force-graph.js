@@ -423,7 +423,7 @@ export default Kapsule({
 
     state.zoom
       .filter(ev => state.enableZoomPanInteraction ? !ev.button : false) // disable zoom interaction
-      .scaleExtent([0.01, 1000])
+      .scaleExtent([0.05, 5])
       .on('zoom', function() {
         const t = d3ZoomTransform(this); // Same as d3.event.transform
         [ctx, shadowCtx].forEach(c => {
