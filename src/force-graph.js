@@ -125,7 +125,7 @@ export default Kapsule({
       default: { nodes: [], links: [] },
       onChange: ((d, state) => {
         if (d.nodes.length || d.links.length) {
-          console.info('force-graph loading', d.nodes.length + ' nodes', d.links.length + ' links');
+          // console.info('force-graph loading', d.nodes.length + ' nodes', d.links.length + ' links');
         }
 
         [{ type: 'Node', objs: d.nodes }, { type: 'Link', objs: d.links }].forEach(hexIndex);
@@ -415,6 +415,30 @@ export default Kapsule({
         })
     );
 
+    const Animation = {
+      paused: false,
+      timestamp: Date.now (),
+      pause () {
+        Animation.paused = true;
+      },
+      resume () {
+        Animation.paused = false;
+        Animation.timestamp = Date.now ();
+      }
+    };
+
+    const _zoom = this.zoom;
+    this.zoom = function ( ...args ) {
+      Animation.resume ();
+      return _zoom.apply ( this, args );
+    };
+
+    const _centerAt = this.centerAt;
+    this.centerAt = function ( ...args ) {
+      Animation.resume ();
+      return _centerAt.apply ( this, args );
+    };
+
     // Setup zoom / pan interaction
     state.zoom = d3Zoom();
     state.zoom(state.zoom.__baseElem = d3Select(state.canvas)); // Attach controlling elem for easy access
@@ -432,6 +456,7 @@ export default Kapsule({
           c.scale(t.k, t.k);
         });
         state.onZoom({ ...t });
+        Animation.resume ();
       })
       .on('end', function() {
         const t = d3ZoomTransform(this); // Same as d3.event.transform
@@ -526,6 +551,11 @@ export default Kapsule({
 
     // Kick-off renderer
     (this._animationCycle = function animate() { // IIFE
+      if ( state.canvas.engineRunning || state.isPointerDragging ) {
+        Animation.resume ();
+      } else if ( !state.canvas.engineRunning && ( Date.now () - Animation.timestamp > 250 ) ) {
+        Animation.pause ();
+      }
       if (state.enablePointerInteraction) {
         // Update tooltip and trigger onHover events
 
@@ -547,15 +577,18 @@ export default Kapsule({
           if (prevObjType && prevObjType !== objType) {
             // Hover out
             state[`on${prevObjType}Hover`](null, prevObj.d);
+            Animation.resume ();
           }
           if (objType) {
             // Hover in
             state[`on${objType}Hover`](obj.d, prevObjType === objType ? prevObj.d : null);
+            Animation.resume ();
           }
 
           state.hoverObj = obj;
         }
 
+        if ( Animation.paused ) return state.animationFrameRequestId = requestAnimationFrame(animate);
         refreshShadowCanvas();
       }
 

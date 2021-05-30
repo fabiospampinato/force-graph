@@ -488,6 +488,7 @@ var CanvasForceGraph = Kapsule__default['default']({
     },
     // reset cooldown state
     resetCountdown: function resetCountdown(state) {
+      state.ctx.canvas.engineRunning = true;
       state.cntTicks = 0;
       state.startTickTime = new Date();
       state.engineRunning = true;
@@ -502,10 +503,12 @@ var CanvasForceGraph = Kapsule__default['default']({
       function layoutTick() {
         if (state.engineRunning) {
           if (++state.cntTicks > state.cooldownTicks || new Date() - state.startTickTime > state.cooldownTime || state.d3AlphaMin > 0 && state.forceLayout.alpha() < state.d3AlphaMin) {
+            state.ctx.canvas.engineRunning = false;
             state.engineRunning = false; // Stop ticking graph
 
             state.onEngineStop();
           } else {
+            state.ctx.canvas.engineRunning = true;
             state.forceLayout.tick(); // Tick it
 
             state.onEngineTick();
@@ -700,6 +703,7 @@ var CanvasForceGraph = Kapsule__default['default']({
     state.ctx = canvasCtx;
   },
   update: function update(state) {
+    state.ctx.canvas.engineRunning = false;
     state.engineRunning = false; // Pause simulation
 
     state.onUpdate(); // parse links
@@ -1283,7 +1287,42 @@ var forceGraph = Kapsule__default['default']({
         delete obj.__dragged;
         state.onNodeDragEnd(obj, translate);
       }
-    })); // Setup zoom / pan interaction
+    }));
+    var Animation = {
+      paused: false,
+      timestamp: Date.now(),
+      pause: function pause() {
+        Animation.paused = true;
+      },
+      resume: function resume() {
+        Animation.paused = false;
+        Animation.timestamp = Date.now();
+      }
+    };
+    var _zoom = this.zoom;
+
+    this.zoom = function () {
+      Animation.resume();
+
+      for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+        args[_key2] = arguments[_key2];
+      }
+
+      return _zoom.apply(this, args);
+    };
+
+    var _centerAt = this.centerAt;
+
+    this.centerAt = function () {
+      Animation.resume();
+
+      for (var _len3 = arguments.length, args = new Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+        args[_key3] = arguments[_key3];
+      }
+
+      return _centerAt.apply(this, args);
+    }; // Setup zoom / pan interaction
+
 
     state.zoom = d3Zoom.zoom();
     state.zoom(state.zoom.__baseElem = d3Selection.select(state.canvas)); // Attach controlling elem for easy access
@@ -1303,6 +1342,7 @@ var forceGraph = Kapsule__default['default']({
         c.scale(t.k, t.k);
       });
       state.onZoom(_objectSpread2({}, t));
+      Animation.resume();
     }).on('end', function () {
       var t = d3Zoom.zoomTransform(this); // Same as d3.event.transform
 
@@ -1399,6 +1439,12 @@ var forceGraph = Kapsule__default['default']({
 
     (this._animationCycle = function animate() {
       // IIFE
+      if (state.canvas.engineRunning || state.isPointerDragging) {
+        Animation.resume();
+      } else if (!state.canvas.engineRunning && Date.now() - Animation.timestamp > 250) {
+        Animation.pause();
+      }
+
       if (state.enablePointerInteraction) {
         // Update tooltip and trigger onHover events
         var obj = null;
@@ -1419,16 +1465,19 @@ var forceGraph = Kapsule__default['default']({
           if (prevObjType && prevObjType !== objType) {
             // Hover out
             state["on".concat(prevObjType, "Hover")](null, prevObj.d);
+            Animation.resume();
           }
 
           if (objType) {
             // Hover in
             state["on".concat(objType, "Hover")](obj.d, prevObjType === objType ? prevObj.d : null);
+            Animation.resume();
           }
 
           state.hoverObj = obj;
         }
 
+        if (Animation.paused) return state.animationFrameRequestId = requestAnimationFrame(animate);
         refreshShadowCanvas();
       } // Wipe canvas
 

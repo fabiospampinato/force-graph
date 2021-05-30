@@ -92,6 +92,7 @@ export default Kapsule({
     },
     // reset cooldown state
     resetCountdown: function(state) {
+      state.ctx.canvas.engineRunning = true;
       state.cntTicks = 0;
       state.startTickTime = new Date();
       state.engineRunning = true;
@@ -113,9 +114,11 @@ export default Kapsule({
             (new Date()) - state.startTickTime > state.cooldownTime ||
             (state.d3AlphaMin > 0 && state.forceLayout.alpha() < state.d3AlphaMin)
           ) {
+            state.ctx.canvas.engineRunning = false;
             state.engineRunning = false; // Stop ticking graph
             state.onEngineStop();
           } else {
+            state.ctx.canvas.engineRunning = true;
             state.forceLayout.tick(); // Tick it
             state.onEngineTick();
           }
@@ -303,6 +306,7 @@ export default Kapsule({
   },
 
   update(state) {
+    state.ctx.canvas.engineRunning = false;
     state.engineRunning = false; // Pause simulation
     state.onUpdate();
 
