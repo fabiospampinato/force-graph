@@ -339,7 +339,31 @@ export default Kapsule({
     if (state.backgroundColor) state.canvas.style.background = state.backgroundColor;
     container.appendChild(state.canvas);
 
+    // state.shadowCanvas = new OffscreenCanvas(256, 256);
+    // state.shadowCanvas.style = {};
     state.shadowCanvas = document.createElement('canvas');
+
+    // if ( 'transferControlToOffscreen' in state.canvas ) {
+    //   const offscreen = state.canvas.transferControlToOffscreen ();
+    //   state.canvas.getContext = offscreen.getContext.bind ( offscreen );
+    //   // state.canvas.style = {};
+    //   Object.defineProperty (state.canvas, 'width', {
+    //     get () {
+    //       return offscreen.width
+    //     },
+    //     set (v) {
+    //       offscreen.width = v;
+    //     }
+    //   });
+    //   Object.defineProperty (state.canvas, 'height', {
+    //     get () {
+    //       return offscreen.height
+    //     },
+    //     set (v) {
+    //       offscreen.height = v;
+    //     }
+    //   });
+    // }
 
     // Show shadow canvas
     //state.shadowCanvas.style.position = 'absolute';
