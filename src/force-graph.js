@@ -347,8 +347,8 @@ export default Kapsule({
     //state.shadowCanvas.style.left = '0';
     //container.appendChild(state.shadowCanvas);
 
-    const ctx = state.canvas.getContext('2d');
-    const shadowCtx = state.shadowCanvas.getContext('2d');
+    const ctx = state.canvas.getContext('2d', { alpha: false });
+    const shadowCtx = state.shadowCanvas.getContext('2d', { alpha: false });
 
     // Setup node drag interaction
     d3Select(state.canvas).call(
